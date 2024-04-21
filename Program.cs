@@ -122,6 +122,26 @@ List<Order> orders = new List<Order>
         InteriorId = 1,
         TechnologyId = 1,
         IsFulfilled = false
+    },
+    new Order
+    {
+        Id = 2,
+        Timestamp = DateTime.Today,
+        WheelId = 2,
+        PaintId = 1,
+        InteriorId = 1,
+        TechnologyId = 1,
+        IsFulfilled = false
+    },
+    new Order
+    {
+        Id = 3,
+        Timestamp = DateTime.Today,
+        WheelId = 3,
+        PaintId = 2,
+        InteriorId = 1,
+        TechnologyId = 1,
+        IsFulfilled = false
     }
 
 };
@@ -193,43 +213,57 @@ app.MapGet("/wheels", () =>
     });
 });
 
-app.MapGet("/orders", () =>
+app.MapGet("/orders", (int? paintId) =>
 {
-    List<Order> unfulfilledOrders = orders.Where(o => !o.IsFulfilled).ToList();
-    
-    return unfulfilledOrders.Select(o => new OrderDTO
+    foreach (Order order in orders)
+    {
+        order.Wheels = wheels.First(w => w.Id == order.WheelId);
+        order.Technology = technologies.First(w => w.Id == order.TechnologyId);
+        order.PaintColor = paints.First(w => w.Id == order.PaintId);
+        order.Interior = interiors.First(w => w.Id == order.InteriorId);
+    }
+
+    List<Order> filteredOrders = orders.Where(o => !o.IsFulfilled).ToList();
+
+    // Now, check for the paintId property to see if we should filter by that as well
+    if (paintId != null)
+    {
+        filteredOrders = filteredOrders.Where(order => order.PaintId == paintId).ToList();
+    }
+
+    return filteredOrders.Select(o => new OrderDTO
     {
         Id = o.Id,
         Timestamp = o.Timestamp,
-        WheelId = o.WheelId,
-        Wheels = new WheelsDTO
-        {
-            Id = o.WheelId,
-            Price = wheels.First(w => w.Id == o.WheelId).Price,
-            Style = wheels.First(s => s.Id == o.WheelId).Style,
-        },
         TechnologyId = o.TechnologyId,
         Technology = new TechnologyDTO
         {
-            Id = o.TechnologyId,
-            Price = technologies.First(t => t.Id == o.TechnologyId).Price,
-            Package = technologies.First(t => t.Id == o.TechnologyId).Package
+            Id = o.Technology.Id,
+            Package = o.Technology.Package,
+            Price = o.Technology.Price
         },
-        PaintId = o.PaintId,
-        PaintColor = new PaintColorDTO
+        WheelId = o.WheelId,
+        Wheels = new WheelsDTO
         {
-            Id = o.PaintId,
-            Price = paints.First(p => p.Id == o.PaintId).Price,
-            Color = paints.First(p => p.Id == o.PaintId).Color
+            Id = o.Wheels.Id,
+            Style = o.Wheels.Style,
+            Price = o.Wheels.Price
         },
         InteriorId = o.InteriorId,
         Interior = new InteriorDTO
         {
-            Id = o.InteriorId,
-            Price = interiors.First(i => i.Id == o.InteriorId).Price,
-            Material = interiors.First(i => i.Id == o.InteriorId).Material
+            Id = o.Interior.Id,
+            Material = o.Interior.Material,
+            Price = o.Interior.Price
         },
-    });
+        PaintId = o.PaintId,
+        PaintColor = new PaintColorDTO
+        {
+            Id = o.PaintColor.Id,
+            Color = o.PaintColor.Color,
+            Price = o.PaintColor.Price
+        },
+    }).ToList();
 });
 
 app.MapPost("/orders", (Order newOrder) =>
